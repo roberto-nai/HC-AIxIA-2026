@@ -1,0 +1,22 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Run PDTA extraction (Ollama)",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/main.py",
+      "console": "integratedTerminal",
+      "args": [
+        "--pdf",
+        "input/pdta_pg_11_14.pdf",
+        "--prompt",
+        "prompts/extraction_prompt.json",
+        "--config",
+        "config/ollama.json",
+        "--source-page-start",
+        "11"
+      ]
+    }
+  ]
+}

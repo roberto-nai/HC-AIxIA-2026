@@ -1,0 +1,192 @@
+{
+  "name": "prompt_1",
+  "system_prompt": "You extract structured process knowledge from Italian clinical pathway documents. Use only information explicitly present in the supplied document text. Do not add clinical knowledge, infer missing times, invent actors, or associate guidelines not stated in the source. Return valid JSON only. Evidence fields must contain verbatim text from the source, preserving the original language. Interpreted values must normalise or split that evidence without changing its meaning.",
+  "user_prompt_template": "Source file: {source_filename}\nSource pages: {first_source_page}-{last_source_page}\n\nExtract the table entitled \"Descrizione sintetica dell’iter diagnostico\".\n\nRules:\n1. Number logical data rows sequentially, excluding the header.\n2. Record the human-visible source page for each row.\n3. When a condition cell is blank, inherit the most recent explicit condition and set inherited_from_row to the row where it was explicitly stated. In that case, condition.evidence must be null.\n4. Keep evidence verbatim. Use null when no supporting text is present.\n5. Split multiple activities, indications, units, sites, access requirements, booking methods and booking actors into separate interpreted values.\n6. Do not treat a booking method, such as \"prenotazione diretta\", as an actor.\n7. Separate organisational units from physical or external execution sites whenever possible.\n8. Separate the procedure name from clinical indications or applicability conditions.\n9. Normalise access times using minimum, maximum and one of these units: hour, day, week. Use null for an unavailable component and never invent a missing time.\n10. Set guideline to exactly \"LG AIOM 2023\" when that text is associated with the table.\n\nDOCUMENT TEXT\n-------------\n{document_text}",
+  "output_schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "table",
+      "guideline",
+      "records"
+    ],
+    "properties": {
+      "table": {
+        "type": "string"
+      },
+      "guideline": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "records": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "table_row",
+            "source_page",
+            "condition",
+            "activities",
+            "activity_indications",
+            "execution_units",
+            "execution_sites",
+            "access_requirements",
+            "booking_methods",
+            "booking_actors",
+            "expected_access_time"
+          ],
+          "properties": {
+            "table_row": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "source_page": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "condition": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "evidence",
+                "interpreted_value",
+                "inherited_from_row"
+              ],
+              "properties": {
+                "evidence": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "interpreted_value": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "inherited_from_row": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "minimum": 1
+                }
+              }
+            },
+            "activities": {
+              "$ref": "#/$defs/evidence_list"
+            },
+            "activity_indications": {
+              "$ref": "#/$defs/evidence_list"
+            },
+            "execution_units": {
+              "$ref": "#/$defs/evidence_list"
+            },
+            "execution_sites": {
+              "$ref": "#/$defs/evidence_list"
+            },
+            "access_requirements": {
+              "$ref": "#/$defs/evidence_list"
+            },
+            "booking_methods": {
+              "$ref": "#/$defs/evidence_list"
+            },
+            "booking_actors": {
+              "$ref": "#/$defs/evidence_list"
+            },
+            "expected_access_time": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "evidence",
+                "interpreted_value"
+              ],
+              "properties": {
+                "evidence": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "interpreted_value": {
+                  "oneOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "minimum",
+                        "maximum",
+                        "unit"
+                      ],
+                      "properties": {
+                        "minimum": {
+                          "type": [
+                            "number",
+                            "null"
+                          ],
+                          "minimum": 0
+                        },
+                        "maximum": {
+                          "type": [
+                            "number",
+                            "null"
+                          ],
+                          "minimum": 0
+                        },
+                        "unit": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "enum": [
+                            "hour",
+                            "day",
+                            "week",
+                            null
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "$defs": {
+      "evidence_list": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "evidence",
+          "interpreted_values"
+        ],
+        "properties": {
+          "evidence": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "interpreted_values": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "uniqueItems": true
+          }
+        }
+      }
+    }
+  }
+}

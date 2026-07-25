@@ -1,0 +1,188 @@
+{
+  "name": "prompt_3",
+  "system_prompt": "You extract structured process knowledge from Italian clinical pathway documents. Use only information explicitly present in the supplied document text. Do not add clinical knowledge, infer missing times, invent actors, or associate guidelines not stated in the source. Return valid JSON only. Evidence fields must contain verbatim text from the source, preserving the original language and any OCR or formatting irregularities. Interpreted values may normalise abbreviations, spacing, capitalisation and obvious textual noise, but must not introduce information that is not supported by the evidence. Assign each extracted element to the most appropriate semantic field.",
+  "user_prompt_template": "Source file: {source_filename}\nSource pages: {first_source_page}-{last_source_page}\n\nExtract the table entitled \"Descrizione sintetica dell’iter diagnostico\".\n\nRules:\n1. Extract every logical data row exactly once, including rows that continue across page breaks. Number the rows sequentially, excluding the header.\n2. Record the human-visible source page on which each logical row begins.\n3. When a condition cell is blank, inherit the most recent explicit condition and set inherited_from_row to the row where it was explicitly stated. In that case, condition.evidence must be null.\n4. Keep every evidence field verbatim. Preserve abbreviations, spacing, punctuation, capitalisation and OCR irregularities exactly as they appear in the supplied text. Use null when no supporting text is present.\n5. Interpreted values may expand abbreviations only when their meaning is unambiguous from the document context, correct spacing and capitalisation, and remove obvious OCR noise, but must preserve the source meaning and must not add unsupported clinical knowledge or introduce information that cannot be directly supported by the evidence.\n6. Split values only when the source explicitly contains multiple distinct elements. Do not split a single procedure merely because it contains alternative anatomical targets, technical variants or applicability conditions.\n7. Treat \"Agobiopsia mammaria o linfonodale su guida ecografica\" as one procedure unless the source clearly presents the two options as separate procedures.\n8. Separate organisational units from physical or external execution sites. Departments, services and organisational structures belong in execution_units; hospitals, clinics, institutes and physical locations belong in execution_sites.\n9. Separate access requirements from booking information. Prescriptions, referrals, internal requests, DEMA requests, forms and required clinical documentation belong in access_requirements.\n10. Distinguish booking methods from booking actors. booking_methods describes how the booking is performed, for example \"Prenotazione diretta\", \"Prenotazione telefonica\" or another explicitly stated booking mechanism. booking_actors identifies who performs or manages the booking, for example \"CAS\", \"GIC\", \"Senologia Diagnostica\", \"SC Oncologia\", \"Segreteria Ambulatorio Terapie Oncologiche\" or \"specialisti\".\n11. In the expression \"Prenotazione diretta o da parte del CAS / GIC\", booking_methods must contain \"Prenotazione diretta\", while booking_actors must contain \"CAS\" and \"GIC\". Do not place \"Prenotazione da parte del CAS\" or \"Prenotazione da parte del GIC\" in booking_methods.\n12. When the source identifies booking actors but does not explicitly state a booking method, leave booking_methods empty and populate booking_actors. Do not invent a generic booking method.\n13. Split multiple activities, indications, units, sites, access requirements, booking methods and booking actors into separate interpreted values only when they represent semantically distinct elements.\n14. Normalise access times using minimum, maximum and one of these units: hour, day, week. For an exact duration, such as \"1 settimana\", \"2 settimane\", \"3 settimane\" or \"10 gg\", set minimum and maximum to the same value. For a range, such as \"1-2 settimane\" or \"2-4 settimane\", set minimum and maximum to the corresponding bounds. Only expressions that explicitly specify an upper limit, such as \"ENTRO 72 H\", must have minimum set to null and maximum set to the reported value. Use null only when no access time is provided, and never infer a missing value.\n15. Set guideline to exactly \"LG AIOM 2023\" when that text is associated with the table.\n16. Before returning the JSON, verify that every logical row has been extracted exactly once, inherited conditions refer to the correct previous row, no procedure has been omitted, and each value has been assigned to the correct semantic field.\n\nDOCUMENT TEXT\n-------------\n{document_text}",
+  "output_schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "table",
+      "guideline",
+      "records"
+    ],
+    "properties": {
+      "table": {
+        "type": "string"
+      },
+      "guideline": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "records": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "table_row",
+            "source_page",
+            "condition",
+            "activities",
+            "execution_units",
+            "execution_sites",
+            "access_requirements",
+            "booking_methods",
+            "booking_actors",
+            "expected_access_time"
+          ],
+          "properties": {
+            "table_row": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "source_page": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "condition": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "evidence",
+                "interpreted_value",
+                "inherited_from_row"
+              ],
+              "properties": {
+                "evidence": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "interpreted_value": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "inherited_from_row": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "minimum": 1
+                }
+              }
+            },
+            "activities": {
+              "$ref": "#/$defs/evidence_list"
+            },
+            "execution_units": {
+              "$ref": "#/$defs/evidence_list"
+            },
+            "execution_sites": {
+              "$ref": "#/$defs/evidence_list"
+            },
+            "access_requirements": {
+              "$ref": "#/$defs/evidence_list"
+            },
+            "booking_methods": {
+              "$ref": "#/$defs/evidence_list"
+            },
+            "booking_actors": {
+              "$ref": "#/$defs/evidence_list"
+            },
+            "expected_access_time": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "evidence",
+                "interpreted_value"
+              ],
+              "properties": {
+                "evidence": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "interpreted_value": {
+                  "oneOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "minimum",
+                        "maximum",
+                        "unit"
+                      ],
+                      "properties": {
+                        "minimum": {
+                          "type": [
+                            "number",
+                            "null"
+                          ],
+                          "minimum": 0
+                        },
+                        "maximum": {
+                          "type": [
+                            "number",
+                            "null"
+                          ],
+                          "minimum": 0
+                        },
+                        "unit": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "enum": [
+                            "hour",
+                            "day",
+                            "week",
+                            null
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "$defs": {
+      "evidence_list": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "evidence",
+          "interpreted_values"
+        ],
+        "properties": {
+          "evidence": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "interpreted_values": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "uniqueItems": true
+          }
+        }
+      }
+    }
+  }
+}

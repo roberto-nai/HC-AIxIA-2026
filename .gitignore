@@ -1,0 +1,36 @@
+.venv/
+__pycache__/
+*.py[cod]
+.env
+output/
+!output/.gitkeep
+.vscode/settings.json
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.DocumentRevisions-V100/
+.fseventsd/
+.Spotlight-V100/
+.TemporaryItems/
+.Trashes/
+.VolumeIcon.icns
+
+# Windows
+Thumbs.db
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+*.stackdump
+
+# Temporary files commonly created by macOS and Windows applications
+~$*
+*.tmp
+*.temp
+
+# Custom directories for old files
+_old
+_old/*

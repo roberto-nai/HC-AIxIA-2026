@@ -1,0 +1,13 @@
+{
+  "provider": "ollama",
+  "model": "llama3.2:latest",
+  "base_url": "http://localhost:11434",
+  "timeout_seconds": 600,
+  "parameters": {
+    "temperature": 0.0,
+    "top_p": 1.0,
+    "top_k": 20,
+    "num_ctx": 16384,
+    "num_predict": 16000
+  }
+}

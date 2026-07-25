@@ -1,0 +1,24 @@
+[project]
+name = "pdta-llm-extractor"
+version = "0.1.0"
+description = "Benchmark-oriented extraction of structured clinical pathway knowledge from PDTA PDFs."
+requires-python = ">=3.12"
+dependencies = [
+    "anthropic>=0.49.0",
+    "jsonschema>=4.23.0",
+    "ollama>=0.6.2",
+    "openai>=1.68.0",
+    "pypdf>=5.4.0",
+    "python-dotenv>=1.0.1"
+]
+
+[project.scripts]
+pdta-extract = "main:main"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.pyright]
+pythonVersion = "3.12"
+typeCheckingMode = "standard"

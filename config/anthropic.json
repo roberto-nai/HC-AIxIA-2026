@@ -1,0 +1,10 @@
+{
+  "provider": "anthropic",
+  "model": "claude-sonnet-4-5-20250929",
+  "api_key_env": "ANTHROPIC_API_KEY",
+  "timeout_seconds": 600,
+  "parameters": {
+    "temperature": 0.0,
+    "max_tokens": 16000
+  }
+}

@@ -1,0 +1,167 @@
+{
+  "name": "bpmn_knowledge_prompt",
+  "version": "4.0",
+  "system_prompt": "You extract BPMN-oriented modelling knowledge from an already structured JSON representation of an Italian clinical pathway table. Use only information present in the supplied JSON. Do not generate a BPMN diagram or infer control flow. Return only lanes, activities, resources, and their traceable associations. Do not use external clinical or organisational knowledge. Return valid JSON only and comply exactly with the supplied JSON schema.",
+  "user_prompt_template": "Transform the following structured clinical-pathway JSON into a conservative BPMN-oriented intermediate representation.\n\nGENERAL RULES\n1. Use only the supplied JSON.\n2. Do not generate BPMN XML, a BPMN diagram, sequence flows, gateways, events, branches, or execution order.\n3. Preserve traceability: every lane, activity, resource, and assignment must cite one or more source rows and source fields.\n4. Merge duplicate elements only when they clearly denote the same entity.\n5. Preserve the interpreted labels from the source whenever possible.\n6. support_level must be explicit, derived, or uncertain.\n7. confidence must be high, medium, or low.\n8. When the source is insufficient, omit the element or place it in uncertain_elements.\n\nLANES\n9. Extract lanes primarily from execution_units.\n10. Do not treat execution_sites as lanes.\n11. A booking actor may be a lane only when the source clearly identifies it as an organisational unit participating in the pathway; otherwise represent it only as a resource.\n12. Do not infer a lane solely from an activity label.\n\nACTIVITIES\n13. Extract every explicitly listed clinical or administrative activity from activities.interpreted_values.\n14. Preserve the original activity granularity and do not replace detailed activities with broader labels.\n15. Classify each activity as clinical, administrative, coordination, or unknown.\n16. A condition, access requirement, booking actor, execution unit, execution site, or expected access time is not an activity.\n17. Do not add treatment, diagnostic, booking, referral, or record-opening activities unless explicitly stated in the source activity field.\n\nRESOURCES\n18. Extract organisational resources from execution_units and booking_actors.\n19. Extract professional roles only when explicitly named in execution_units, booking_actors, access_requirements, condition, or activities.\n20. Do not infer a professional role solely from an activity name.\n21. Treat execution_sites as locations, not resources.\n22. Booking actors normally have booking or coordination responsibility and must not automatically be treated as performers of clinical activities.\n23. Classify each resource as organisational_unit, professional_role, coordination_actor, administrative_actor, or unknown.\n\nASSIGNMENTS\n24. Link an execution unit to each activity in the same source row using assignment_type = performs.\n25. Link a booking actor to each activity in the same source row using assignment_type = books or coordinates, according to the explicit wording.\n26. Do not assign execution sites as performers.\n27. Do not create an assignment when the relationship is not supported by the same row or explicit wording.\n28. All referenced lane, activity, and resource IDs must exist.\n\nFINAL CHECK\n29. Verify that the output contains only modelling knowledge, not a BPMN model.\n30. Verify that no unsupported control flow, role, responsibility, or organisational unit has been added.\n31. Verify that every evidence item uses only one of these source fields: condition, activities, execution_units, execution_sites, access_requirements, booking_methods, booking_actors, expected_access_time.\n\nSOURCE JSON\n-----------\n{source_json}",
+  "output_schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "source_file",
+      "source_table",
+      "lanes",
+      "activities",
+      "resources",
+      "resource_activity_assignments",
+      "uncertain_elements"
+    ],
+    "properties": {
+      "source_file": {"type": ["string", "null"]},
+      "source_table": {"type": ["string", "null"]},
+      "lanes": {
+        "type": "array",
+        "items": {"$ref": "#/$defs/lane"}
+      },
+      "activities": {
+        "type": "array",
+        "items": {"$ref": "#/$defs/activity"}
+      },
+      "resources": {
+        "type": "array",
+        "items": {"$ref": "#/$defs/resource"}
+      },
+      "resource_activity_assignments": {
+        "type": "array",
+        "items": {"$ref": "#/$defs/assignment"}
+      },
+      "uncertain_elements": {
+        "type": "array",
+        "items": {"$ref": "#/$defs/uncertain"}
+      }
+    },
+    "$defs": {
+      "support_level": {
+        "type": "string",
+        "enum": ["explicit", "derived", "uncertain"]
+      },
+      "confidence": {
+        "type": "string",
+        "enum": ["high", "medium", "low"]
+      },
+      "source_field": {
+        "type": "string",
+        "enum": [
+          "condition",
+          "activities",
+          "execution_units",
+          "execution_sites",
+          "access_requirements",
+          "booking_methods",
+          "booking_actors",
+          "expected_access_time"
+        ]
+      },
+      "evidence_item": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["source_row", "source_field", "text"],
+        "properties": {
+          "source_row": {"type": "integer", "minimum": 1},
+          "source_field": {"$ref": "#/$defs/source_field"},
+          "text": {"type": "string", "minLength": 1}
+        }
+      },
+      "evidence": {
+        "type": "array",
+        "minItems": 1,
+        "items": {"$ref": "#/$defs/evidence_item"}
+      },
+      "lane": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "label", "support_level", "confidence", "evidence", "notes"],
+        "properties": {
+          "id": {"type": "string", "minLength": 1},
+          "label": {"type": "string", "minLength": 1},
+          "support_level": {"$ref": "#/$defs/support_level"},
+          "confidence": {"$ref": "#/$defs/confidence"},
+          "evidence": {"$ref": "#/$defs/evidence"},
+          "notes": {"type": ["string", "null"]}
+        }
+      },
+      "activity": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "label", "activity_type", "support_level", "confidence", "evidence", "notes"],
+        "properties": {
+          "id": {"type": "string", "minLength": 1},
+          "label": {"type": "string", "minLength": 1},
+          "activity_type": {
+            "type": "string",
+            "enum": ["clinical", "administrative", "coordination", "unknown"]
+          },
+          "support_level": {"$ref": "#/$defs/support_level"},
+          "confidence": {"$ref": "#/$defs/confidence"},
+          "evidence": {"$ref": "#/$defs/evidence"},
+          "notes": {"type": ["string", "null"]}
+        }
+      },
+      "resource": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "label", "resource_type", "support_level", "confidence", "evidence", "notes"],
+        "properties": {
+          "id": {"type": "string", "minLength": 1},
+          "label": {"type": "string", "minLength": 1},
+          "resource_type": {
+            "type": "string",
+            "enum": [
+              "organisational_unit",
+              "professional_role",
+              "coordination_actor",
+              "administrative_actor",
+              "unknown"
+            ]
+          },
+          "support_level": {"$ref": "#/$defs/support_level"},
+          "confidence": {"$ref": "#/$defs/confidence"},
+          "evidence": {"$ref": "#/$defs/evidence"},
+          "notes": {"type": ["string", "null"]}
+        }
+      },
+      "assignment": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["resource_id", "activity_id", "assignment_type", "support_level", "confidence", "evidence", "notes"],
+        "properties": {
+          "resource_id": {"type": "string", "minLength": 1},
+          "activity_id": {"type": "string", "minLength": 1},
+          "assignment_type": {
+            "type": "string",
+            "enum": ["performs", "books", "coordinates", "associated", "unknown"]
+          },
+          "support_level": {"$ref": "#/$defs/support_level"},
+          "confidence": {"$ref": "#/$defs/confidence"},
+          "evidence": {"$ref": "#/$defs/evidence"},
+          "notes": {"type": ["string", "null"]}
+        }
+      },
+      "uncertain": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["category", "label", "reason", "confidence", "evidence"],
+        "properties": {
+          "category": {
+            "type": "string",
+            "enum": ["lane", "activity", "resource", "assignment", "other"]
+          },
+          "label": {"type": "string", "minLength": 1},
+          "reason": {"type": "string", "minLength": 1},
+          "confidence": {"$ref": "#/$defs/confidence"},
+          "evidence": {"$ref": "#/$defs/evidence"}
+        }
+      }
+    }
+  }
+}
