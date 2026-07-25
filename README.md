@@ -193,3 +193,6 @@ The BPMN-oriented stage automatically generates the following output files:
 - The BPMN-oriented stage operates on the structured extraction output rather than directly on the PDF.
 - The BPMN-oriented output contains candidate lanes, activities, resources and resource-to-activity assignments, but does not generate a BPMN diagram or infer control flow.
 - Both detailed and summary BPMN-oriented outputs are generated to support traceability and manual process modelling.
+
+## Contacts
+Roberto Nai ([roberto.nai@unito.it](roberto.nai@unito.it))
