@@ -1,0 +1,26 @@
+{
+  "name": "clinical_guideline_extraction_prompt_v1",
+  "system_prompt": "You extract explicit clinical guideline and clinical recommendation references from Italian PDTA documents. Use only information explicitly written in the supplied document. Do not use external knowledge, infer missing years, merge references with different years, or convert legislation, scientific articles, websites, and general bibliography entries into guidelines. Return valid JSON only and comply exactly with the supplied JSON schema.",
+  "user_prompt_template": "Source file: {source_filename}\nSource pages: {first_source_page}-{last_source_page}\n\nExtract all distinct references to clinical guidelines, recommendations, or explicitly named clinical consensus documents from the supplied PDTA text.\n\nANNOTATION RULES\n1. Extract a reference only when it is explicitly present in the text.\n2. Return each distinct reference once, even if it occurs several times.\n3. Preserve distinctions between references with and without a year. For example, AIOM, AIOM 2019, and AIOM 2023 are three different entities when all three forms occur.\n4. Preserve distinctions between different guideline scopes and editions, such as ESMO Early BC, ESMO Metastatic BC 2024, and ESMO Metastatic BC 2025.\n5. The name field must be a short identifying label based only on the explicit source wording. It may remove surrounding phrases such as 'linee guida' or 'raccomandazioni', but must not add missing organisations, topics, or years.\n6. Evidence must be copied verbatim from the source and must support the extracted name.\n7. source_page must be the page number shown by the nearest marker '===== SOURCE PAGE N ====='.\n8. Include explicitly named clinical consensus documents when they function as clinical recommendations.\n9. Exclude laws, decrees, DGRs, administrative regulations, scientific articles, statistical sources, and generic web links.\n10. Do not treat a bibliography item as a guideline unless its wording explicitly identifies a guideline, recommendation, or consensus document.\n11. Before returning the output, check that no duplicate name is present.\n\nDOCUMENT TEXT\n-------------\n{document_text}",
+  "output_schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["guidelines"],
+    "properties": {
+      "guidelines": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["name", "evidence", "source_page"],
+          "properties": {
+            "name": {"type": "string", "minLength": 1},
+            "evidence": {"type": "string", "minLength": 1},
+            "source_page": {"type": "integer", "minimum": 1}
+          }
+        }
+      }
+    }
+  }
+}

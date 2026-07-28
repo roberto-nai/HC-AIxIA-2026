@@ -8,6 +8,8 @@ from pathlib import Path
 
 from src.bpmn_pipeline import BPMNKnowledgeError, BPMNKnowledgePipeline
 from src.evaluation import EVALUATION_FIELD, evaluate
+from src.guideline_evaluation import evaluate_guidelines
+from src.guideline_pipeline import GuidelineExtractionPipeline, GuidelinePipelineError
 from src.pipeline import ExtractionPipeline, PipelineError
 
 
@@ -76,6 +78,60 @@ def build_parser() -> argparse.ArgumentParser:
         help="Optional model label for the aggregate evaluation CSV.",
     )
 
+
+    guideline = parser.add_argument_group("clinical-guideline extraction and evaluation")
+    guideline.add_argument(
+        "--guideline-pdf",
+        type=Path,
+        help="Input PDTA PDF for clinical-guideline extraction.",
+    )
+    guideline.add_argument(
+        "--guideline-prompt",
+        type=Path,
+        help="Clinical-guideline extraction prompt JSON path.",
+    )
+    guideline.add_argument(
+        "--guideline-config",
+        type=Path,
+        help="LLM configuration JSON path for clinical-guideline extraction.",
+    )
+    guideline.add_argument(
+        "--guideline-page-start",
+        type=int,
+        default=1,
+        help="Inclusive first PDF page for guideline extraction (default: 1).",
+    )
+    guideline.add_argument(
+        "--guideline-page-end",
+        type=int,
+        default=None,
+        help="Optional inclusive last PDF page for guideline extraction.",
+    )
+    guideline.add_argument(
+        "--guideline-output",
+        type=Path,
+        default=None,
+        help="Optional explicit guideline extraction output JSON path.",
+    )
+    guideline.add_argument(
+        "--guideline-gold",
+        type=Path,
+        help="Gold-standard JSON for clinical-guideline evaluation.",
+    )
+    guideline.add_argument(
+        "--guideline-prediction",
+        type=Path,
+        help=(
+            "Guideline prediction JSON to evaluate. When omitted after guideline "
+            "extraction, the newly generated JSON is evaluated."
+        ),
+    )
+    guideline.add_argument(
+        "--guideline-model",
+        default=None,
+        help="Optional model label for guideline evaluation CSV files.",
+    )
+
     bpmn = parser.add_argument_group("stage 2: BPMN-oriented knowledge")
     bpmn.add_argument(
         "--bpmn-source",
@@ -123,13 +179,43 @@ def validate_args(parser: argparse.ArgumentParser, args: argparse.Namespace) -> 
     if args.prediction is not None and args.gold_standard is None:
         parser.error("--gold-standard is required when --prediction is supplied.")
 
+    guideline_extraction_values = (
+        args.guideline_pdf,
+        args.guideline_prompt,
+        args.guideline_config,
+    )
+    guideline_extraction_requested = any(
+        value is not None for value in guideline_extraction_values
+    )
+    if guideline_extraction_requested and not all(
+        value is not None for value in guideline_extraction_values
+    ):
+        parser.error(
+            "--guideline-pdf, --guideline-prompt and --guideline-config "
+            "must be supplied together."
+        )
+
+    guideline_evaluation_requested = (
+        args.guideline_gold is not None or args.guideline_prediction is not None
+    )
+    if args.guideline_prediction is not None and args.guideline_gold is None:
+        parser.error(
+            "--guideline-gold is required when --guideline-prediction is supplied."
+        )
+
     bpmn_requested = args.bpmn_prompt is not None or args.bpmn_source is not None
     if args.bpmn_source is not None and args.bpmn_prompt is None:
         parser.error("--bpmn-prompt is required when --bpmn-source is supplied.")
     if args.bpmn_prompt is not None and args.bpmn_config is None and args.config is None:
         parser.error("Provide --bpmn-config or --config for Stage 2.")
 
-    if not extraction_requested and not evaluation_requested and not bpmn_requested:
+    if (
+        not extraction_requested
+        and not evaluation_requested
+        and not guideline_extraction_requested
+        and not guideline_evaluation_requested
+        and not bpmn_requested
+    ):
         parser.error("No operation requested.")
 
     if args.field != "evidence" and args.gold_standard is not None:
@@ -209,6 +295,68 @@ def main() -> int:
             f"precision={aggregate['precision']:.4f}, "
             f"recall={aggregate['recall']:.4f}, "
             f"F1={aggregate['f1_score']:.4f}"
+        )
+
+    guideline_data_path: Path | None = None
+    guideline_extraction_requested = all(
+        value is not None
+        for value in (
+            args.guideline_pdf,
+            args.guideline_prompt,
+            args.guideline_config,
+        )
+    )
+
+    if guideline_extraction_requested:
+        guideline_pipeline = GuidelineExtractionPipeline(
+            pdf_path=args.guideline_pdf,
+            prompt_path=args.guideline_prompt,
+            config_path=args.guideline_config,
+            source_page_start=args.guideline_page_start,
+            source_page_end=args.guideline_page_end,
+            output_path=args.guideline_output,
+            output_dir=args.output_dir,
+        )
+        try:
+            guideline_data_path, guideline_metadata_path = guideline_pipeline.run()
+        except GuidelinePipelineError as exc:
+            print(f"Guideline extraction failed: {exc}", file=sys.stderr)
+            return 1
+
+        print(f"Guideline data saved to: {guideline_data_path}")
+        print(f"Guideline metadata saved to: {guideline_metadata_path}")
+
+    guideline_prediction_path = args.guideline_prediction or guideline_data_path
+    if args.guideline_gold is not None:
+        if guideline_prediction_path is None:
+            print(
+                "No guideline prediction JSON is available for evaluation.",
+                file=sys.stderr,
+            )
+            return 1
+        try:
+            (
+                guideline_details_path,
+                guideline_summary_path,
+                guideline_metrics,
+            ) = evaluate_guidelines(
+                gold_standard_path=args.guideline_gold,
+                prediction_path=guideline_prediction_path,
+                output_dir=args.output_dir,
+                model_name=args.guideline_model,
+            )
+        except ValueError as exc:
+            print(f"Guideline evaluation failed: {exc}", file=sys.stderr)
+            return 1
+
+        print(f"Guideline evaluation details saved to: {guideline_details_path}")
+        print(f"Guideline evaluation summary updated: {guideline_summary_path}")
+        print(
+            "Guideline metrics: "
+            f"accuracy={guideline_metrics['accuracy']:.4f}, "
+            f"precision={guideline_metrics['precision']:.4f}, "
+            f"recall={guideline_metrics['recall']:.4f}, "
+            f"F1={guideline_metrics['f1_score']:.4f}"
         )
 
     bpmn_requested = args.bpmn_prompt is not None

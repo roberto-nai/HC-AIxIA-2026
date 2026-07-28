@@ -11,6 +11,8 @@ from typing import Any, Iterable
 
 EVALUATION_FIELD = "evidence"
 
+ROUND_DIGITS = 3 # Number of decimal places to round metrics to in the output CSV files.
+
 CATEGORIES = (
     "condition",
     "activities",
@@ -158,10 +160,10 @@ def metrics(counts: Counts) -> dict[str, float | int]:
     f1 = safe_divide(2 * precision * recall, precision + recall)
 
     return {
-        "accuracy": accuracy,
-        "precision": precision,
-        "recall": recall,
-        "f1_score": f1,
+        "accuracy": round(accuracy, ROUND_DIGITS),
+        "precision": round(precision, ROUND_DIGITS),
+        "recall": round(recall, ROUND_DIGITS),
+        "f1_score": round(f1, ROUND_DIGITS),
         "tp": counts.tp,
         "tn": counts.tn,
         "fp": counts.fp,

@@ -1,0 +1,91 @@
+{
+  "source_document": "pdta_nov2025_rev1.pdf",
+  "task": "clinical_guideline_extraction",
+  "matching_policy": {
+    "case_sensitive": false,
+    "trim_whitespace": true,
+    "use_accepted_matches": true
+  },
+  "gold_standard": [
+    {
+      "id": "GL01",
+      "name": "AIOM",
+      "accepted_matches": [
+        "AIOM",
+        "Linee guida AIOM",
+        "LG AIOM"
+      ]
+    },
+    {
+      "id": "GL02",
+      "name": "AIOM 2019",
+      "accepted_matches": [
+        "AIOM 2019",
+        "Linee guida AIOM 2019",
+        "LG AIOM 2019"
+      ]
+    },
+    {
+      "id": "GL03",
+      "name": "AIOM 2023",
+      "accepted_matches": [
+        "AIOM 2023",
+        "Linee guida AIOM 2023",
+        "LG AIOM 2023"
+      ]
+    },
+    {
+      "id": "GL04",
+      "name": "ESMO Early BC",
+      "accepted_matches": [
+        "ESMO Early BC",
+        "ESMO Early Breast Cancer"
+      ]
+    },
+    {
+      "id": "GL05",
+      "name": "ESMO Metastatic BC 2024",
+      "accepted_matches": [
+        "ESMO Metastatic BC 2024",
+        "ESMO Metastatic Breast Cancer 2024",
+        "Metastatic BC 2024"
+      ]
+    },
+    {
+      "id": "GL06",
+      "name": "ESMO Metastatic BC 2025",
+      "accepted_matches": [
+        "ESMO Metastatic BC 2025",
+        "ESMO Metastatic Breast Cancer 2025",
+        "Metastatic BC 2025"
+      ]
+    },
+    {
+      "id": "GL07",
+      "name": "OMS",
+      "accepted_matches": [
+        "OMS",
+        "Organizzazione Mondiale della Sanità",
+        "WHO",
+        "World Health Organization"
+      ]
+    },
+    {
+      "id": "GL08",
+      "name": "WCRF",
+      "accepted_matches": [
+        "WCRF",
+        "World Cancer Research Fund"
+      ]
+    },
+    {
+      "id": "GL09",
+      "name": "Documento di Consenso Rete Oncologica 2018",
+      "accepted_matches": [
+        "Documento di Consenso Rete Oncologica 2018",
+        "Documento di Consenso della Rete Oncologica 2018",
+        "Documento di Consenso della Rete Oncologica del Piemonte e della Valle d'Aosta 2018"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "name": "clinical_guideline_extraction_prompt_v2",
+  "system_prompt": "You extract explicit clinical guideline, recommendation, and named clinical consensus references from Italian PDTA documents. Your task is entity extraction, not summarisation. Return one atomic guideline entity per JSON item. Use only information explicitly written in the supplied document. Do not use external knowledge, infer missing organisations or years, merge different references, or return descriptive sentences as names. Return valid JSON only and comply exactly with the supplied JSON schema.",
+  "user_prompt_template": "Source file: {source_filename}\nSource pages: {first_source_page}-{last_source_page}\n\nExtract every distinct clinical guideline, recommendation, or explicitly named clinical consensus document from the supplied PDTA text.\n\nTARGET OUTPUT\nThe name field must contain only a short, atomic identifier suitable for exact comparison with a gold standard. Prefer the organisation acronym, followed only by an explicitly stated scope and/or year.\n\nMANDATORY RULES\n1. Extract only references explicitly present in the document.\n2. Return one entity per item. Never combine multiple guidelines in one name.\n3. Split coordinated expressions into separate entities. For example:\n   - 'Raccomandazioni OMS/WCRF' -> 'OMS' and 'WCRF'.\n   - 'ESMO EARLY BC e METASTATIC BC 2024 e 2025' -> 'ESMO Early BC', 'ESMO Metastatic BC 2024', and 'ESMO Metastatic BC 2025'.\n4. Preserve references with and without a year as distinct entities when both occur. For example, 'AIOM', 'AIOM 2019', and 'AIOM 2023' are different entities.\n5. Use the shortest identifying label supported by the evidence:\n   - remove generic prefixes such as 'linee guida', 'LG', 'raccomandazioni', 'documento di', and explanatory wording;\n   - retain the organisation acronym, explicit clinical scope, and explicit year;\n   - do not return full descriptive phrases when a shorter identifier is available.\n6. Normalise only harmless presentation differences:\n   - 'LG AIOM 2023' -> 'AIOM 2023';\n   - 'Linee guida dell’Associazione Italiana Oncologia Medica (AIOM), versione 2023' -> 'AIOM 2023';\n   - 'ESMO EARLY BC' -> 'ESMO Early BC';\n   - 'METASTATIC BC 2024' occurring in an ESMO expression -> 'ESMO Metastatic BC 2024'.\n7. Do not merge editions or scopes. 'ESMO Metastatic BC 2024' and 'ESMO Metastatic BC 2025' must be separate items.\n8. Do not emit a broader duplicate when a phrase is only a verbose restatement of an already extracted entity. For example, do not return both 'AIOM 2023' and 'Linee guida dell’Associazione Italiana Oncologia Medica (AIOM), versione 2023'.\n9. Evidence must be copied verbatim from the source and may be shared by multiple entities when one source phrase contains several references.\n10. source_page must be the page number shown by the nearest marker '===== SOURCE PAGE N ====='.\n11. Include explicitly named clinical consensus documents only when the document gives a specific identifiable title or organisation and, when present, a year.\n12. Exclude laws, decrees, DGRs, administrative regulations, scientific articles, statistical sources, websites, and generic bibliography entries.\n13. Before returning the output, perform these checks:\n    a. every name identifies exactly one entity;\n    b. no name contains conjunctions such as 'e', '/', or comma-separated guideline lists;\n    c. no duplicate or verbose paraphrase of another name remains;\n    d. all explicitly stated years and scopes are preserved;\n    e. coordinated expressions have been fully decomposed.\n\nPOSITIVE EXAMPLES\nSource: 'Secondo linee guida AIOM'\nOutput name: 'AIOM'\n\nSource: 'LG AIOM 2019'\nOutput name: 'AIOM 2019'\n\nSource: 'Linee guida dell’Associazione Italiana Oncologia Medica (AIOM), versione 2023'\nOutput name: 'AIOM 2023'\n\nSource: 'Linee Guida ESMO EARLY BC e METASTATIC BC 2024 e 2025'\nOutput names: 'ESMO Early BC'; 'ESMO Metastatic BC 2024'; 'ESMO Metastatic BC 2025'\n\nSource: 'Raccomandazioni OMS/WCRF'\nOutput names: 'OMS'; 'WCRF'\n\nNEGATIVE EXAMPLES\n- Do not output 'ESMO 2024' when the source specifies 'Metastatic BC 2024'.\n- Do not output 'Raccomandazioni OMS/WCRF' as one entity.\n- Do not output 'Linee Guida ESMO EARLY BC e METASTATIC BC 2024 e 2025' as one entity.\n- Do not output both a canonical short name and its verbose paraphrase.\n\nDOCUMENT TEXT\n-------------\n{document_text}",
+  "output_schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "guidelines"
+    ],
+    "properties": {
+      "guidelines": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "name",
+            "evidence",
+            "source_page"
+          ],
+          "properties": {
+            "name": {
+              "type": "string",
+              "minLength": 1
+            },
+            "evidence": {
+              "type": "string",
+              "minLength": 1
+            },
+            "source_page": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        }
+      }
+    }
+  }
+}
