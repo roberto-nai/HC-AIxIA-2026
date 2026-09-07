@@ -1,6 +1,6 @@
 # PDTA LLM Extractor
 
-Python 3.12 project for extracting structured knowledge from PDTA tables, extracting clinical guideline references, and generating BPMN-oriented knowledge using different LLM providers while keeping prompts and model configurations in separate JSON files.
+Python 3.12 project for extracting structured knowledge from PDTA tables, extracting clinical guideline references, and generating BPMN-oriented knowledge using different LLM providers while keeping prompts and model configurations in separate JSON files. See also the BPMN reference at the bottom of the page. 
 
 ## Pipeline
 
@@ -205,3 +205,8 @@ The BPMN-oriented stage automatically generates the following output files:
 ## Contacts
 
 Roberto Nai (roberto.nai@unito.it)
+
+## BPMN reference
+
+![BPMN reference](breast_unitn_en.png)
+
